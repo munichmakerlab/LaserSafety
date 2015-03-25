@@ -15,8 +15,6 @@ bool s_pressure_ok = false;
 bool safety_flag = false;
 
 void setup() {
-  // put your setup code here, to run once:
-  
   pinMode(p_safety, OUTPUT);
   digitalWrite(p_safety, LOW);
   
@@ -93,9 +91,10 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
   if (
   s_waterflow_ok &&
   s_pressure_ok
-  ) {
+  )
+  {
     safety_flag = true;
-  }else {
+  } else {
     safety_flag = false;
   }
   
