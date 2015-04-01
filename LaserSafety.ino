@@ -6,8 +6,11 @@
 
 
 // Pins
-float temp1_min = 8.0  ;
+float temp1_min = 8.0 ;
 float temp1_max = 27;
+
+float temp2_min = 8.0;
+float temp2_max = 26;
 
 #define p_lid 2
 #define p_pressure 3
@@ -26,8 +29,10 @@ bool s_lid_ok = false;
 bool s_waterleak1_ok = false;
 bool s_waterleak2_ok = false;
 bool s_temp1_ok = false;
+bool s_temp2_ok = false;
 
 float s_temp1;
+float s_temp2;
 
 
 bool safety_flag = false;
@@ -123,6 +128,15 @@ void get_sensor_states() {
     s_temp1_ok = false;
   }
   
+  // s_temp2
+  s_temp2 = sensors.getTempCByIndex(1);
+  Serial.println(s_temp2);
+  
+  if (s_temp2 > temp2_min && s_temp2 < temp2_max) {
+    s_temp2_ok = true;
+  } else {
+    s_temp2_ok = false;
+  }
 }
 
 void set_safety_flag() { // Checks, if all inputs indicate safe performance, then sets safety_flag
