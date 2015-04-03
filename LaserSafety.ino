@@ -69,6 +69,8 @@ void setup() {
   Timer1.initialize(50000);
   Timer1.attachInterrupt(doImportantStuff);
   
+  // Watchdog disabled.
+  // **** YOU NEED TO FIX THE TIMING AND ENABLE IT BEFORE USING THIS!
   // watchdogSetup();
 }
 
@@ -219,6 +221,7 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 }
 
 void updateDisplay() {
+  // Unfinished, this was just to test.
   // Write out sensor states to i2c
   if (s_lid_ok) {
     Set_LED_PWM(1, 255);
@@ -258,10 +261,12 @@ void doImportantStuff() {
   disable_laser = ! safety_flag; // If save operation not garateed, disable laser (HIGH Output will disable the laser!)
   digitalWrite(p_safety, disable_laser); // Write out pin state
   
-  updateDisplay();
+  updateDisplay(); // Send the states to the display panel via I2C
   
   Serial.println(safety_flag);
-  wdt_reset();
+  wdt_reset(); // reset the watchdog timer
+  
+  // Maybe add something to verify the temperatures (in loop()) were updated some reasonable time ago
 }
 
 ISR(WDT_vect) // Watchdog timer interrupt.
@@ -271,10 +276,7 @@ ISR(WDT_vect) // Watchdog timer interrupt.
   //
 
   while (true) {
-    
+    // Loop forever
   }
-
-  // To be filled with "useful" debug info later
-  //EEPROM.write(crash_report_addr, 1);
 
 }
