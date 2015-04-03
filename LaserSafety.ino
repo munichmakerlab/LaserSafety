@@ -54,8 +54,6 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Starting...");
 
-  // watchdogSetup();
-
   setupi2c();
 
   sensors.begin();
@@ -70,6 +68,8 @@ void setup() {
   
   Timer1.initialize(50000);
   Timer1.attachInterrupt(doImportantStuff);
+  
+  // watchdogSetup();
 }
 
 void watchdogSetup(void)
@@ -88,7 +88,7 @@ void watchdogSetup(void)
   // Enter Watchdog Configuration mode:
   WDTCSR |= (1 << WDCE) | (0 << WDE);
   // Set Watchdog settings:
-  WDTCSR = (1 << WDIE) | (0 << WDE) | (1 << WDP3) | (1 << WDP2) | (1 << WDP1) | (1 << WDP0);
+  WDTCSR = (1 << WDIE) | (0 << WDE) | ( 1 << WDP3) | (1 << WDP2) | (1 << WDP1) | (1 << WDP0);
   sei();
 }
 
@@ -261,16 +261,17 @@ void doImportantStuff() {
   updateDisplay();
   
   Serial.println(safety_flag);
+  wdt_reset();
 }
 
 ISR(WDT_vect) // Watchdog timer interrupt.
 {
   digitalWrite(p_safety, HIGH);
-
+  Serial.println("Watchodg");
   //
 
   while (true) {
-    Serial.println("Watchodg");
+    
   }
 
   // To be filled with "useful" debug info later
