@@ -14,9 +14,10 @@ float temp1_max = 27;
 float temp2_min = 8.0;
 float temp2_max = 26;
 
-#define p_lid 2
+//#define p_lid 2
+
+#define flow_sensor 2 
 #define p_pressure 3
-#define p_waterflow 4
 #define p_waterleak1 5
 #define p_waterleak2 6
 
@@ -24,7 +25,7 @@ float temp2_max = 26;
 
 #define  p_safety 12 // The output pin to the laser controller
 
-// Sensors
+// Sensor states
 bool s_waterflow_ok = false;
 bool s_pressure_ok = false;
 bool s_lid_ok = false;
@@ -40,39 +41,19 @@ float s_temp2;
 bool safety_flag = false;
 bool disable_laser = true;
 
-DeviceAddress hinlauf = {0x28, 0x04, 0xDD, 0xAC, 0x04, 0x00, 0x00, 0x55};
-DeviceAddress ruecklauf = {0x28, 0xC3, 0x0D, 0xAE, 0x04, 0x00, 0x00, 0x16};
+// Dallas sensor adresses 
+DeviceAddress water_inlet = {0x28, 0x04, 0xDD, 0xAC, 0x04, 0x00, 0x00, 0x55};
+DeviceAddress water_outlet = {0x28, 0xC3, 0x0D, 0xAE, 0x04, 0x00, 0x00, 0x16};
 
 OneWire oneWire(p_onewire);
 
-DallasTemperature sensors(&oneWire);
+DallasTemperature temp_sensors(&oneWire);
 
-void setup() {
-  pinMode(p_safety, OUTPUT);
-  digitalWrite(p_safety, HIGH);
+// Flow sensor
+volatile int NbTopsFan; //measuring the rising edges of the signal
+int Calc;                               
 
-  Serial.begin(9600);
-  Serial.println("Starting...");
-
-  setupi2c();
-
-  sensors.begin();
-  sensors.setResolution(hinlauf, 10);
-  sensors.setResolution(ruecklauf, 10);
-
-  pinMode(p_lid, INPUT_PULLUP);
-  pinMode(p_waterflow, INPUT_PULLUP);
-  pinMode(p_pressure, INPUT_PULLUP);
-  pinMode(p_waterleak1, INPUT_PULLUP);
-  pinMode(p_waterleak2, INPUT_PULLUP);
-  
-  Timer1.initialize(50000);
-  Timer1.attachInterrupt(doImportantStuff);
-  
-  // Watchdog disabled.
-  // **** YOU NEED TO FIX THE TIMING AND ENABLE IT BEFORE USING THIS!
-  // watchdogSetup();
-}
+################## setup functions #################
 
 void watchdogSetup(void)
 {
@@ -133,6 +114,36 @@ void setupi2c() {
   Wire.endTransmission();  // I2C-Stop
 }
 
+void setup() {
+  pinMode(p_safety, OUTPUT);
+  digitalWrite(p_safety, HIGH);
+
+  Serial.begin(9600);
+  Serial.println("START;");
+
+  setupi2c();
+
+  temp_sensors.begin();
+  temp_sensors.setResolution(water_inlet, 10);
+  temp_sensors.setResolution(water_outlet, 10);
+
+  //pinMode(p_lid, INPUT_PULLUP);
+  pinMode(p_waterflow, INPUT_PULLUP);
+  pinMode(p_pressure, INPUT_PULLUP);
+  pinMode(p_waterleak1, INPUT_PULLUP);
+  pinMode(p_waterleak2, INPUT_PULLUP);
+  pinMode(flow_sensor, INPUT);
+  
+  attachInterrupt(0, rpm, RISING); //flow sensor
+
+  // Watchdog disabled.
+  // **** YOU NEED TO FIX THE TIMING AND ENABLE IT BEFORE USING THIS!
+  // watchdogSetup();
+}
+
+
+################## loop functions #################
+
 void Set_LED_PWM(int LED, int PWM)
 {
   Wire.begin();             //I2C-Start
@@ -142,28 +153,26 @@ void Set_LED_PWM(int LED, int PWM)
   Wire.endTransmission();   // I2C-Stop
 }
 
+void rpm ()     //This is the function that the interupt calls 
+{ 
+ NbTopsFan++;  //This function measures the rising and falling edge of the flow sensor 
+}
+
 
 void get_sensor_states() {
 
   // s_lid_ok
-  if (digitalRead(p_lid) == LOW) {
-    s_lid_ok = true;
-  } else {
-    s_lid_ok = false;
-  }
+  //if (digitalRead(p_lid) == LOW) {
+  //  s_lid_ok = true;
+  //} else {
+  //  s_lid_ok = false;
+  //}
 
   // s_pressure_ok
   if (digitalRead(p_pressure) == LOW) {
     s_pressure_ok = true;
   } else {
     s_pressure_ok = false;
-  }
-
-  // s_waterflow_ok
-  if (digitalRead(p_waterflow) == LOW) {
-    s_waterflow_ok = true;
-  } else {
-    s_waterflow_ok = false;
   }
 
   // s_waterleak
@@ -181,7 +190,7 @@ void get_sensor_states() {
   }
 
   // s_temp1
-  s_temp1 = sensors.getTempC(hinlauf);
+  s_temp1 = temp_sensors.getTempC(water_inlet);
   Serial.println(s_temp1);
 
   if (s_temp1 > temp1_min && s_temp1 < temp1_max ) {
@@ -191,7 +200,7 @@ void get_sensor_states() {
   }
 
   // s_temp2
-  s_temp2 = sensors.getTempC(ruecklauf);
+  s_temp2 = temp_sensors.getTempC(water_outlet);
   Serial.println(s_temp2);
 
   if (s_temp2 > temp2_min && s_temp2 < temp2_max) {
@@ -240,9 +249,13 @@ void updateDisplay() {
   }
 }
 
+
+
+
+
 void loop() {
 
-  sensors.requestTemperatures();
+  temp_sensors.requestTemperatures();
   Serial.println("Done reading temp");
   
   // DEBUG CODE
@@ -255,7 +268,24 @@ void loop() {
   wdt_reset();
 }
 
-void doImportantStuff() {
+
+
+
+######################## disused junk ##################
+
+void messure_flow_over_time()
+{
+ NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
+ sei();            //Enables interrupts
+ delay (1000);      //Wait 1 second
+ cli();            //Disable interrupts
+ Calc = (NbTopsFan * 60 / 7.5); //(Pulse frequency x 60) / 7.5Q, = flow rate in L/hour 
+ Serial.print (Calc, DEC); //Prints the number calculated above
+ Serial.print (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
+}
+
+
+void doImportantStuff_outdated() {
   get_sensor_states(); // set all the s_ variables from input
   set_safety_flag(); // check all variables, then set safety_flag
   disable_laser = ! safety_flag; // If save operation not garateed, disable laser (HIGH Output will disable the laser!)
@@ -280,3 +310,4 @@ ISR(WDT_vect) // Watchdog timer interrupt.
   }
 
 }
+
