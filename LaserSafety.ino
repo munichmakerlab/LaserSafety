@@ -44,10 +44,12 @@ bool disable_laser = true;
 // Dallas sensor adresses 
 DeviceAddress water_inlet = {0x28, 0x04, 0xDD, 0xAC, 0x04, 0x00, 0x00, 0x55};
 DeviceAddress water_outlet = {0x28, 0xC3, 0x0D, 0xAE, 0x04, 0x00, 0x00, 0x16};
-
 OneWire oneWire(p_onewire);
-
 DallasTemperature temp_sensors(&oneWire);
+
+unsigned int temp_requests_time = 1000;
+unsigned long temp_last_update;
+
 
 // Flow sensor
 volatile int NbTopsFan; //measuring the rising edges of the signal
@@ -114,6 +116,18 @@ void setupi2c() {
   Wire.endTransmission();  // I2C-Stop
 }
 
+
+void temp_setup() {
+  setupi2c();
+
+  temp_sensors.begin();
+  temp_sensors.setResolution(water_inlet, 10);
+  temp_sensors.setResolution(water_outlet, 10);
+
+  temp_sensors.requestTemperatures();
+  temp_last_update = millis(); 
+}
+
 void setup() {
   pinMode(p_safety, OUTPUT);
   digitalWrite(p_safety, HIGH);
@@ -121,11 +135,7 @@ void setup() {
   Serial.begin(9600);
   Serial.println("START;");
 
-  setupi2c();
-
-  temp_sensors.begin();
-  temp_sensors.setResolution(water_inlet, 10);
-  temp_sensors.setResolution(water_outlet, 10);
+  temp_setup();
 
   //pinMode(p_lid, INPUT_PULLUP);
   pinMode(p_waterflow, INPUT_PULLUP);
@@ -159,6 +169,18 @@ void rpm ()     //This is the function that the interupt calls
 }
 
 
+bool check_generic_LOW(int pin) {
+    if (digitalRead(pin) == LOW) {
+    return true;
+  } else {
+    return false;
+  }
+}
+  
+
+
+
+
 void get_sensor_states() {
 
   // s_lid_ok
@@ -169,25 +191,11 @@ void get_sensor_states() {
   //}
 
   // s_pressure_ok
-  if (digitalRead(p_pressure) == LOW) {
-    s_pressure_ok = true;
-  } else {
-    s_pressure_ok = false;
-  }
+  s_pressure_ok = check_generic_LOW(p_pressure);
 
   // s_waterleak
-
-  if (digitalRead(p_waterleak1) == LOW) {
-    s_waterleak1_ok = true;
-  } else {
-    s_waterleak1_ok = false;
-  }
-
-  if (digitalRead(p_waterleak2) == LOW) {
-    s_waterleak2_ok = true;
-  } else {
-    s_waterleak2_ok = false;
-  }
+  s_waterleak1_ok = check_generic_LOW(p_waterleak1);
+  s_waterleak2_ok = check_generic_LOW(p_waterleak2);
 
   // s_temp1
   s_temp1 = temp_sensors.getTempC(water_inlet);
@@ -250,14 +258,21 @@ void updateDisplay() {
 }
 
 
+void request_update_temp_sensors() {
+  //global temperature request to all devices on the bus
+  temp_sensors.requestTemperatures();
+  temp_last_update = millis(); 
+  
+}
 
 
 
 void loop() {
-
-  temp_sensors.requestTemperatures();
-  Serial.println("Done reading temp");
-  
+  if ( temp_last_update + temp_requests_time < millis() ) {
+    request_update_temp_sensors()
+  }
+    
+ 
   // DEBUG CODE
   if (digitalRead(13) == LOW) {
     // generate artificial hang:
