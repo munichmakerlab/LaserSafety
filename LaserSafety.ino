@@ -14,23 +14,23 @@ float temp1_max = 27;
 float temp2_min = 8.0;
 float temp2_max = 26;
 
-//#define p_lid 2
 
-#define flow_sensor 2 
+#define p_flow_sensor 2 
 #define p_pressure 3
-#define p_waterleak1 5
-#define p_waterleak2 6
+#define p_waterleak1 4
+#define p_waterleak2 5
+#define p_waterleak3 6
 
 #define p_onewire 7
 
-#define  p_safety 12 // The output pin to the laser controller
+#define p_safety 13 // The output pin to the laser controller
 
 // Sensor states
 bool s_waterflow_ok = false;
 bool s_pressure_ok = false;
-bool s_lid_ok = false;
 bool s_waterleak1_ok = false;
 bool s_waterleak2_ok = false;
+bool s_waterleak3_ok = false;
 bool s_temp1_ok = false;
 bool s_temp2_ok = false;
 
@@ -41,9 +41,9 @@ float s_temp2;
 bool safety_flag = false;
 bool disable_laser = true;
 
-// Dallas sensor adresses 
-DeviceAddress water_inlet = {0x28, 0x04, 0xDD, 0xAC, 0x04, 0x00, 0x00, 0x55};
-DeviceAddress water_outlet = {0x28, 0xC3, 0x0D, 0xAE, 0x04, 0x00, 0x00, 0x16};
+// Dallas temp sensor adresses 
+DeviceAddress water_outlet = {0x28, 0x04, 0xDD, 0xAC, 0x04, 0x00, 0x00, 0x55};
+DeviceAddress water_inlet = {0x28, 0xC3, 0x0D, 0xAE, 0x04, 0x00, 0x00, 0x16};
 OneWire oneWire(p_onewire);
 DallasTemperature temp_sensors(&oneWire);
 
@@ -55,27 +55,8 @@ unsigned long temp_last_update;
 volatile int NbTopsFan; //measuring the rising edges of the signal
 int Calc;                               
 
-################## setup functions #################
+// ################## setup functions #################
 
-void watchdogSetup(void)
-{
-  cli();  // disable all interrupts
-  wdt_reset(); // reset the WDT timer
-  /*
-   WDTCSR configuration:
-   WDIE = 1: Interrupt Enable
-   WDE = 1 :Reset Enable
-   WDP3 = 0 :For 2000ms Time-out
-   WDP2 = 1 :For 2000ms Time-out
-   WDP1 = 1 :For 2000ms Time-out
-   WDP0 = 1 :For 2000ms Time-out
-  */
-  // Enter Watchdog Configuration mode:
-  WDTCSR |= (1 << WDCE) | (0 << WDE);
-  // Set Watchdog settings:
-  WDTCSR = (1 << WDIE) | (0 << WDE) | ( 1 << WDP3) | (1 << WDP2) | (1 << WDP1) | (1 << WDP0);
-  sei();
-}
 
 void setupi2c() {
   Wire.begin();     //I2C-Start
@@ -85,22 +66,22 @@ void setupi2c() {
   Wire.write(0x00);  // Register 00 /  Mode1
   Wire.write(0x00);  // Register 01 /  Mode2
 
-  Wire.write(0x00);  // Register 02 /  PWM LED 1    // Default alle PWM auf 0
-  Wire.write(0x00);  // Register 03 /  PWM LED 2
-  Wire.write(0x00);  // Register 04 /  PWM LED 3
-  Wire.write(0x00);  // Register 05 /  PWM LED 4
-  Wire.write(0x00);  // Register 06 /  PWM LED 5
-  Wire.write(0x00);  // Register 07 /  PWM LED 6
-  Wire.write(0x00);  // Register 08 /  PWM LED 7
-  Wire.write(0x00);  // Register 09 /  PWM LED 8
-  Wire.write(0x00);  // Register 0A /  PWM LED 9
-  Wire.write(0x00);  // Register 0B /  PWM LED 10
-  Wire.write(0x00);  // Register 0C /  PWM LED 11
-  Wire.write(0x00);  // Register 0D /  PWM LED 12
-  Wire.write(0x00);  // Register 0E /  PWM LED 13
-  Wire.write(0x00);  // Register 0F /  PWM LED 14
-  Wire.write(0x00);  // Register 10 /  PWM LED 15
-  Wire.write(0x00);  // Register 11 /  PWM LED 16  // Default alle PWM auf 0
+  Wire.write(0xFF);  // Register 02 /  PWM LED 1    // Default alle PWM auf 255
+  Wire.write(0xFF);  // Register 03 /  PWM LED 2
+  Wire.write(0xFF);  // Register 04 /  PWM LED 3
+  Wire.write(0xFF);  // Register 05 /  PWM LED 4
+  Wire.write(0xFF);  // Register 06 /  PWM LED 5
+  Wire.write(0xFF);  // Register 07 /  PWM LED 6
+  Wire.write(0xFF);  // Register 08 /  PWM LED 7
+  Wire.write(0xFF);  // Register 09 /  PWM LED 8
+  Wire.write(0xFF);  // Register 0A /  PWM LED 9
+  Wire.write(0xFF);  // Register 0B /  PWM LED 10
+  Wire.write(0xFF);  // Register 0C /  PWM LED 11
+  Wire.write(0xFF);  // Register 0D /  PWM LED 12
+  Wire.write(0xFF);  // Register 0E /  PWM LED 13
+  Wire.write(0xFF);  // Register 0F /  PWM LED 14
+  Wire.write(0xFF);  // Register 10 /  PWM LED 15
+  Wire.write(0xFF);  // Register 11 /  PWM LED 16  // Default alle PWM auf 0
 
   Wire.write(0xFF);  // Register 12 /  Group duty cycle control
   Wire.write(0x00);  // Register 13 /  Group frequency
@@ -138,13 +119,14 @@ void setup() {
   temp_setup();
 
   //pinMode(p_lid, INPUT_PULLUP);
-  pinMode(p_waterflow, INPUT_PULLUP);
+  //pinMode(p_waterflow, INPUT_PULLUP);
   pinMode(p_pressure, INPUT_PULLUP);
   pinMode(p_waterleak1, INPUT_PULLUP);
-  pinMode(p_waterleak2, INPUT_PULLUP);
-  pinMode(flow_sensor, INPUT);
+  pinMode(p_waterleak2, INPUT_PULLUP); 
+  pinMode(p_waterleak3, INPUT_PULLUP);
+  pinMode(p_flow_sensor, INPUT);
   
-  attachInterrupt(0, rpm, RISING); //flow sensor
+  attachInterrupt(0, count_rpms_flow_sensor, RISING); //flow sensor
 
   // Watchdog disabled.
   // **** YOU NEED TO FIX THE TIMING AND ENABLE IT BEFORE USING THIS!
@@ -152,7 +134,7 @@ void setup() {
 }
 
 
-################## loop functions #################
+// ################## loop functions #################
 
 void Set_LED_PWM(int LED, int PWM)
 {
@@ -163,7 +145,7 @@ void Set_LED_PWM(int LED, int PWM)
   Wire.endTransmission();   // I2C-Stop
 }
 
-void rpm ()     //This is the function that the interupt calls 
+void count_rpms_flow_sensor()     //This is the function that the interupt calls 
 { 
  NbTopsFan++;  //This function measures the rising and falling edge of the flow sensor 
 }
@@ -176,9 +158,6 @@ bool check_generic_LOW(int pin) {
     return false;
   }
 }
-  
-
-
 
 
 void get_sensor_states() {
@@ -196,6 +175,7 @@ void get_sensor_states() {
   // s_waterleak
   s_waterleak1_ok = check_generic_LOW(p_waterleak1);
   s_waterleak2_ok = check_generic_LOW(p_waterleak2);
+  s_waterleak3_ok = check_generic_LOW(p_waterleak3);
 
   // s_temp1
   s_temp1 = temp_sensors.getTempC(water_inlet);
@@ -220,7 +200,6 @@ void get_sensor_states() {
 
 void set_safety_flag() { // Checks, if all inputs indicate safe performance, then sets safety_flag
   if (
-    s_lid_ok &&
     s_pressure_ok &&
     s_waterflow_ok &&
     s_waterleak1_ok &&
@@ -240,11 +219,6 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 void updateDisplay() {
   // Unfinished, this was just to test.
   // Write out sensor states to i2c
-  if (s_lid_ok) {
-    Set_LED_PWM(1, 255);
-  } else {
-    Set_LED_PWM(1, 0);
-  }
   if (s_pressure_ok) {
     Set_LED_PWM(2, 255);
   } else {
@@ -257,36 +231,75 @@ void updateDisplay() {
   }
 }
 
-
 void request_update_temp_sensors() {
   //global temperature request to all devices on the bus
-  temp_sensors.requestTemperatures();
+  temp_sensors.requestTemperatures(); 
   temp_last_update = millis(); 
   
 }
 
 
-
 void loop() {
-  if ( temp_last_update + temp_requests_time < millis() ) {
-    request_update_temp_sensors()
-  }
-    
+ if ( temp_last_update + temp_requests_time < millis() ) {
+   request_update_temp_sensors();
+ }
+ 
+ get_sensor_states();
+ 
+ set_safety_flag(); 
+ 
+ 
+ disable_laser = ! safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
+ digitalWrite(p_safety, disable_laser); // Write out pin state
+ 
+ messure_flow_over_time();
+
+ //updateDisplay();
+ 
+
  
   // DEBUG CODE
-  if (digitalRead(13) == LOW) {
+  //if (digitalRead(13) == LOW) {
     // generate artificial hang:
-    Serial.println("Generating hang...");
-    delay(10000);
-  }
+  //  Serial.println("Generating hang...");
+  //  delay(10000);
+  //}
 
-  wdt_reset();
+  //wdt_reset();
 }
 
 
 
 
-######################## disused junk ##################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ######################## disused junk ##################
 
 void messure_flow_over_time()
 {
@@ -324,5 +337,26 @@ ISR(WDT_vect) // Watchdog timer interrupt.
     // Loop forever
   }
 
+}
+
+
+void watchdogSetup(void)
+{
+  cli();  // disable all interrupts
+  wdt_reset(); // reset the WDT timer
+  /*
+   WDTCSR configuration:
+   WDIE = 1: Interrupt Enable
+   WDE = 1 :Reset Enable
+   WDP3 = 0 :For 2000ms Time-out
+   WDP2 = 1 :For 2000ms Time-out
+   WDP1 = 1 :For 2000ms Time-out
+   WDP0 = 1 :For 2000ms Time-out
+  */
+  // Enter Watchdog Configuration mode:
+  WDTCSR |= (1 << WDCE) | (0 << WDE);
+  // Set Watchdog settings:
+  WDTCSR = (1 << WDIE) | (0 << WDE) | ( 1 << WDP3) | (1 << WDP2) | (1 << WDP1) | (1 << WDP0);
+  sei();
 }
 
