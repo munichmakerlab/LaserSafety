@@ -216,19 +216,21 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 
 }
 
+void genericDisplayState(int pin1, bool state){
+  if (state) {
+    Set_LED_PWM(pin1, 255);
+    Set_LED_PWM(pin1+1, 0);
+  } else {
+    Set_LED_PWM(pin1, 0);
+    Set_LED_PWM(pin1+1, 255);
+  }
+}
+
 void updateDisplay() {
   // Unfinished, this was just to test.
   // Write out sensor states to i2c
-  if (s_pressure_ok) {
-    Set_LED_PWM(2, 255);
-  } else {
-    Set_LED_PWM(2, 0);
-  }
-  if (s_waterflow_ok) {
-    Set_LED_PWM(3, 255);
-  } else {
-    Set_LED_PWM(3, 0);
-  }
+  genericDisplayState(0, s_waterflow_ok);
+  // And so on
 }
 
 void request_update_temp_sensors() {
