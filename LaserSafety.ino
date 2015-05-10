@@ -216,7 +216,7 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 
 }
 
-void genericDisplayState(int pin1, bool state){
+void generic_display_state(int pin1, bool state){
   if (state) {
     Set_LED_PWM(pin1, 255);
     Set_LED_PWM(pin1+1, 0);
@@ -229,7 +229,7 @@ void genericDisplayState(int pin1, bool state){
 void updateDisplay() {
   // Unfinished, this was just to test.
   // Write out sensor states to i2c
-  genericDisplayState(0, s_waterflow_ok);
+  generic_display_state(0, s_waterflow_ok);
   // And so on
 }
 
