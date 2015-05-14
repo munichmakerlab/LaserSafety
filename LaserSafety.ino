@@ -229,8 +229,16 @@ void generic_display_state(int pin1, bool state){
 void updateDisplay() {
   // Unfinished, this was just to test.
   // Write out sensor states to i2c
-  generic_display_state(0, s_waterflow_ok);
-  // And so on
+  // (Counting from 1!)
+  generic_display_state(1, s_pressure_ok);
+  generic_display_state(3, s_waterflow_ok);
+  generic_display_state(5, s_temp1_ok);
+  generic_display_state(7, s_temp2_ok);
+  generic_display_state(9, s_waterleak1_ok);
+  generic_display_state(11, s_waterleak2_ok);
+  generic_display_state(13, s_waterleak3_ok);
+  
+  generic_display_state(15, safety_flag);
 }
 
 void request_update_temp_sensors() {
@@ -246,6 +254,7 @@ void loop() {
    request_update_temp_sensors();
  }
  
+ 
  get_sensor_states();
  
  set_safety_flag(); 
@@ -254,9 +263,9 @@ void loop() {
  disable_laser = ! safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
  digitalWrite(p_safety, disable_laser); // Write out pin state
  
- messure_flow_over_time();
+ // messure_flow_over_time(); // Seems to be broken?!
 
- //updateDisplay();
+ updateDisplay();
  
 
  
