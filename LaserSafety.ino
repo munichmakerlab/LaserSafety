@@ -6,15 +6,7 @@
 #include <TimerOne.h>
 #include <avr/wdt.h>
 
-
 // Pins
-float temp1_min = 8.0 ;
-float temp1_max = 27;
-
-float temp2_min = 8.0;
-float temp2_max = 26;
-
-
 #define p_flow_sensor 2 
 #define p_pressure 3
 #define p_waterleak1 4
@@ -25,6 +17,7 @@ float temp2_max = 26;
 
 #define p_safety 13 // The output pin to the laser controller
 
+
 // Sensor states
 bool s_waterflow_ok = false;
 bool s_pressure_ok = false;
@@ -34,12 +27,19 @@ bool s_waterleak3_ok = false;
 bool s_temp1_ok = false;
 bool s_temp2_ok = false;
 
+bool safety_flag = false;
+bool disable_laser = true;
+
+// Temp stuff
 float s_temp1;
 float s_temp2;
 
+float temp1_min = 8.0;
+float temp1_max = 27;
 
-bool safety_flag = false;
-bool disable_laser = true;
+float temp2_min = 8.0;
+float temp2_max = 26;
+
 
 // Dallas temp sensor adresses 
 DeviceAddress water_outlet = {0x28, 0x04, 0xDD, 0xAC, 0x04, 0x00, 0x00, 0x55};
@@ -52,13 +52,15 @@ unsigned long temp_last_update;
 
 
 // Flow sensor
-volatile int NbTopsFan; //measuring the rising edges of the signal
-int Calc;                               
+float volume;
+float volume_min = 4;
+float volume_max = 7;
+volatile int NbTopsFan; //measuring the rising edges of the signal                               
 
 // ################## setup functions #################
 
 
-void setupi2c() {
+void i2c_setup() {
   Wire.begin();     //I2C-Start
   Wire.beginTransmission(B1100000); // TLC59116 Slave Adresse ->C0 hex
   Wire.write(0x80);  // autoincrement ab Register 0h
@@ -66,22 +68,23 @@ void setupi2c() {
   Wire.write(0x00);  // Register 00 /  Mode1
   Wire.write(0x00);  // Register 01 /  Mode2
 
-  Wire.write(0xFF);  // Register 02 /  PWM LED 1    // Default alle PWM auf 255
-  Wire.write(0xFF);  // Register 03 /  PWM LED 2
-  Wire.write(0xFF);  // Register 04 /  PWM LED 3
-  Wire.write(0xFF);  // Register 05 /  PWM LED 4
-  Wire.write(0xFF);  // Register 06 /  PWM LED 5
-  Wire.write(0xFF);  // Register 07 /  PWM LED 6
-  Wire.write(0xFF);  // Register 08 /  PWM LED 7
-  Wire.write(0xFF);  // Register 09 /  PWM LED 8
-  Wire.write(0xFF);  // Register 0A /  PWM LED 9
-  Wire.write(0xFF);  // Register 0B /  PWM LED 10
-  Wire.write(0xFF);  // Register 0C /  PWM LED 11
-  Wire.write(0xFF);  // Register 0D /  PWM LED 12
-  Wire.write(0xFF);  // Register 0E /  PWM LED 13
-  Wire.write(0xFF);  // Register 0F /  PWM LED 14
-  Wire.write(0xFF);  // Register 10 /  PWM LED 15
-  Wire.write(0xFF);  // Register 11 /  PWM LED 16  // Default alle PWM auf 0
+  // default all on (not fully) 
+  Wire.write(0xA0);  // Register 02 /  PWM LED 1    
+  Wire.write(0xA0);  // Register 03 /  PWM LED 2
+  Wire.write(0xA0);  // Register 04 /  PWM LED 3
+  Wire.write(0xA0);  // Register 05 /  PWM LED 4
+  Wire.write(0xA0);  // Register 06 /  PWM LED 5
+  Wire.write(0xA0);  // Register 07 /  PWM LED 6
+  Wire.write(0xA0);  // Register 08 /  PWM LED 7
+  Wire.write(0xA0);  // Register 09 /  PWM LED 8
+  Wire.write(0xA0);  // Register 0A /  PWM LED 9
+  Wire.write(0xA0);  // Register 0B /  PWM LED 10
+  Wire.write(0xA0);  // Register 0C /  PWM LED 11
+  Wire.write(0xA0);  // Register 0D /  PWM LED 12
+  Wire.write(0xA0);  // Register 0E /  PWM LED 13
+  Wire.write(0xA0);  // Register 0F /  PWM LED 14
+  Wire.write(0xA0);  // Register 10 /  PWM LED 15
+  Wire.write(0xA0);  // Register 11 /  PWM LED 16  
 
   Wire.write(0xFF);  // Register 12 /  Group duty cycle control
   Wire.write(0x00);  // Register 13 /  Group frequency
@@ -99,7 +102,6 @@ void setupi2c() {
 
 
 void temp_setup() {
-  setupi2c();
 
   temp_sensors.begin();
   temp_sensors.setResolution(water_inlet, 10);
@@ -116,14 +118,15 @@ void setup() {
   Serial.begin(9600);
   Serial.println("START;");
 
+  i2c_setup();  // Display
   temp_setup();
 
   //pinMode(p_lid, INPUT_PULLUP);
   //pinMode(p_waterflow, INPUT_PULLUP);
-  pinMode(p_pressure, INPUT_PULLUP);
-  pinMode(p_waterleak1, INPUT_PULLUP);
-  pinMode(p_waterleak2, INPUT_PULLUP); 
-  pinMode(p_waterleak3, INPUT_PULLUP);
+  pinMode(p_pressure, INPUT);
+  pinMode(p_waterleak1, INPUT);
+  pinMode(p_waterleak2, INPUT); 
+  pinMode(p_waterleak3, INPUT);
   pinMode(p_flow_sensor, INPUT);
   
   attachInterrupt(0, count_rpms_flow_sensor, RISING); //flow sensor
@@ -152,12 +155,39 @@ void count_rpms_flow_sensor()     //This is the function that the interupt calls
 
 
 bool check_generic_LOW(int pin) {
-    if (digitalRead(pin) == LOW) {
+  if (digitalRead(pin) == LOW) {
     return true;
   } else {
     return false;
   }
 }
+
+bool check_generic_HIGH(int pin) {
+  if (digitalRead(pin) == HIGH) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool check_flow() {
+  volume = messure_flow_over_time();
+  Serial.print (volume); //Prints the number calculated above (x ,DEC)
+  Serial.print (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
+  
+  if (volume > volume_min && volume < volume_max ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+float messure_flow_over_time() {
+ NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
+ delay(1000);      //Wait 1 second
+ return ((NbTopsFan * 60 / 7.5) / 60); //((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in L per minute (normal ~5)
+}
+    
 
 
 void get_sensor_states() {
@@ -173,9 +203,9 @@ void get_sensor_states() {
   s_pressure_ok = check_generic_LOW(p_pressure);
 
   // s_waterleak
-  s_waterleak1_ok = check_generic_LOW(p_waterleak1);
-  s_waterleak2_ok = check_generic_LOW(p_waterleak2);
-  s_waterleak3_ok = check_generic_LOW(p_waterleak3);
+  s_waterleak1_ok = check_generic_HIGH(p_waterleak1);
+  s_waterleak2_ok = check_generic_HIGH(p_waterleak2);
+  s_waterleak3_ok = check_generic_HIGH(p_waterleak3);
 
   // s_temp1
   s_temp1 = temp_sensors.getTempC(water_inlet);
@@ -196,6 +226,9 @@ void get_sensor_states() {
   } else {
     s_temp2_ok = false;
   }
+  
+  s_waterflow_ok = check_flow();
+  
 }
 
 void set_safety_flag() { // Checks, if all inputs indicate safe performance, then sets safety_flag
@@ -205,7 +238,7 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
     s_waterleak1_ok &&
     s_waterleak2_ok &&
     s_temp1_ok &&
-    s_temp2_ok
+    s_temp2_ok 
   )
   {
     safety_flag = true;
@@ -216,41 +249,46 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 
 }
 
-void generic_display_state(int pin1, bool state){
+void generic_display_state(int pin, bool state){
+  Serial.print(state);
   if (state) {
-    Set_LED_PWM(pin1, 255);
-    Set_LED_PWM(pin1+1, 0);
+    Set_LED_PWM(pin, 255);
+    Set_LED_PWM(pin+1, 0);
   } else {
-    Set_LED_PWM(pin1, 0);
-    Set_LED_PWM(pin1+1, 255);
+    Set_LED_PWM(pin, 0);
+    Set_LED_PWM(pin+1, 255);
   }
 }
 
-void updateDisplay() {
-  // Unfinished, this was just to test.
+void update_display() {
   // Write out sensor states to i2c
   // (Counting from 1!)
-  generic_display_state(1, s_pressure_ok);
-  generic_display_state(3, s_waterflow_ok);
-  generic_display_state(5, s_temp1_ok);
-  generic_display_state(7, s_temp2_ok);
-  generic_display_state(9, s_waterleak1_ok);
-  generic_display_state(11, s_waterleak2_ok);
-  generic_display_state(13, s_waterleak3_ok);
   
-  generic_display_state(15, safety_flag);
+  Serial.print("States: ");
+  generic_display_state(1, safety_flag);
+  
+  generic_display_state(3, s_pressure_ok);
+  generic_display_state(5, s_waterflow_ok);
+  generic_display_state(7, s_temp1_ok);
+  generic_display_state(9, s_temp2_ok);
+  generic_display_state(11, s_waterleak1_ok);
+  generic_display_state(13, s_waterleak2_ok);
+  generic_display_state(15, s_waterleak3_ok);
+  Serial.println("");
 }
 
 void request_update_temp_sensors() {
   //global temperature request to all devices on the bus
+  //cli();
   temp_sensors.requestTemperatures(); 
   temp_last_update = millis(); 
+  //sei();
   
 }
 
-
 void loop() {
  if ( temp_last_update + temp_requests_time < millis() ) {
+   Serial.println("Updating temp sensors");
    request_update_temp_sensors();
  }
  
@@ -258,16 +296,11 @@ void loop() {
  get_sensor_states();
  
  set_safety_flag(); 
- 
- 
- disable_laser = ! safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
+ disable_laser = safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
  digitalWrite(p_safety, disable_laser); // Write out pin state
- 
- // messure_flow_over_time(); // Seems to be broken?!
 
- updateDisplay();
+ update_display();
  
-
  
   // DEBUG CODE
   //if (digitalRead(13) == LOW) {
@@ -312,16 +345,7 @@ void loop() {
 
 // ######################## disused junk ##################
 
-void messure_flow_over_time()
-{
- NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
- sei();            //Enables interrupts
- delay (1000);      //Wait 1 second
- cli();            //Disable interrupts
- Calc = (NbTopsFan * 60 / 7.5); //(Pulse frequency x 60) / 7.5Q, = flow rate in L/hour 
- Serial.print (Calc, DEC); //Prints the number calculated above
- Serial.print (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
-}
+
 
 
 void doImportantStuff_outdated() {
@@ -330,7 +354,7 @@ void doImportantStuff_outdated() {
   disable_laser = ! safety_flag; // If save operation not garateed, disable laser (HIGH Output will disable the laser!)
   digitalWrite(p_safety, disable_laser); // Write out pin state
   
-  updateDisplay(); // Send the states to the display panel via I2C
+  update_display(); // Send the states to the display panel via I2C
   
   Serial.println(safety_flag);
   wdt_reset(); // reset the watchdog timer
@@ -338,17 +362,17 @@ void doImportantStuff_outdated() {
   // Maybe add something to verify the temperatures (in loop()) were updated some reasonable time ago
 }
 
-ISR(WDT_vect) // Watchdog timer interrupt.
-{
-  digitalWrite(p_safety, HIGH);
-  Serial.println("Watchodg");
+//ISR(WDT_vect) // Watchdog timer interrupt.
+//{
+//  digitalWrite(p_safety, HIGH);
+//  Serial.println("Watchodg");
   //
 
-  while (true) {
+//  while (true) {
     // Loop forever
-  }
+//  }
 
-}
+//}
 
 
 void watchdogSetup(void)
