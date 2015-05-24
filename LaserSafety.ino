@@ -59,6 +59,24 @@ volatile int NbTopsFan; //measuring the rising edges of the signal
 
 // ################## setup functions #################
 
+void dim_leds() {
+  for (int p=255 ; p >0; p--)   // Dimmrichtung dunkler
+  {
+    Set_LED_ALL(p);      
+    delay(1);  // Warten
+  } 
+}
+
+void Set_LED_ALL(int PWM)
+{
+  Wire.begin();            // I2C-Start
+  Wire.beginTransmission(B1100000); // TLC59116 Slave Adresse ->C0 hex
+  Wire.write(0x82);         // Startregister 02h 
+  for (int i=1 ; i < 17; i++){  // 16Bytes (Register 02h bis 11h) schreiben
+    Wire.write(PWM);
+  }
+  Wire.endTransmission();  // I2C-Stop
+}
 
 void i2c_setup() {
   Wire.begin();     //I2C-Start
@@ -69,22 +87,22 @@ void i2c_setup() {
   Wire.write(0x00);  // Register 01 /  Mode2
 
   // default all on (not fully) 
-  Wire.write(0xA0);  // Register 02 /  PWM LED 1    
-  Wire.write(0xA0);  // Register 03 /  PWM LED 2
-  Wire.write(0xA0);  // Register 04 /  PWM LED 3
-  Wire.write(0xA0);  // Register 05 /  PWM LED 4
-  Wire.write(0xA0);  // Register 06 /  PWM LED 5
-  Wire.write(0xA0);  // Register 07 /  PWM LED 6
-  Wire.write(0xA0);  // Register 08 /  PWM LED 7
-  Wire.write(0xA0);  // Register 09 /  PWM LED 8
-  Wire.write(0xA0);  // Register 0A /  PWM LED 9
-  Wire.write(0xA0);  // Register 0B /  PWM LED 10
-  Wire.write(0xA0);  // Register 0C /  PWM LED 11
-  Wire.write(0xA0);  // Register 0D /  PWM LED 12
-  Wire.write(0xA0);  // Register 0E /  PWM LED 13
-  Wire.write(0xA0);  // Register 0F /  PWM LED 14
-  Wire.write(0xA0);  // Register 10 /  PWM LED 15
-  Wire.write(0xA0);  // Register 11 /  PWM LED 16  
+  Wire.write(0xF0);  // Register 02 /  PWM LED 1    
+  Wire.write(0xF0);  // Register 03 /  PWM LED 2
+  Wire.write(0xF0);  // Register 04 /  PWM LED 3
+  Wire.write(0xF0);  // Register 05 /  PWM LED 4
+  Wire.write(0xF0);  // Register 06 /  PWM LED 5
+  Wire.write(0xF0);  // Register 07 /  PWM LED 6
+  Wire.write(0xF0);  // Register 08 /  PWM LED 7
+  Wire.write(0xF0);  // Register 09 /  PWM LED 8
+  Wire.write(0xF0);  // Register 0A /  PWM LED 9
+  Wire.write(0xF0);  // Register 0B /  PWM LED 10
+  Wire.write(0xF0);  // Register 0C /  PWM LED 11
+  Wire.write(0xF0);  // Register 0D /  PWM LED 12
+  Wire.write(0xF0);  // Register 0E /  PWM LED 13
+  Wire.write(0xF0);  // Register 0F /  PWM LED 14
+  Wire.write(0xF0);  // Register 10 /  PWM LED 15
+  Wire.write(0xF0);  // Register 11 /  PWM LED 16  
 
   Wire.write(0xFF);  // Register 12 /  Group duty cycle control
   Wire.write(0x00);  // Register 13 /  Group frequency
@@ -118,7 +136,11 @@ void setup() {
   Serial.begin(9600);
   Serial.println("START;");
 
-  i2c_setup();  // Display
+  // init Display
+  i2c_setup();
+  delay(700); 
+  dim_leds();
+  
   temp_setup();
 
   //pinMode(p_lid, INPUT_PULLUP);
@@ -237,6 +259,7 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
     s_waterflow_ok &&
     s_waterleak1_ok &&
     s_waterleak2_ok &&
+    s_waterleak3_ok &&
     s_temp1_ok &&
     s_temp2_ok 
   )
