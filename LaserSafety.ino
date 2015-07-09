@@ -130,6 +130,10 @@ void temp_setup() {
 }
 
 void setup() {
+
+  // Deactivate Watchdog
+  wdt_disable();
+  
   pinMode(p_safety, OUTPUT);
   digitalWrite(p_safety, HIGH);
 
@@ -153,9 +157,8 @@ void setup() {
   
   attachInterrupt(0, count_rpms_flow_sensor, RISING); //flow sensor
 
-  // Watchdog disabled.
-  // **** YOU NEED TO FIX THE TIMING AND ENABLE IT BEFORE USING THIS!
-  // watchdogSetup();
+  // activate Watchdog
+  wdt_enable(WDTO_2S);
 }
 
 
@@ -310,6 +313,10 @@ void request_update_temp_sensors() {
 }
 
 void loop() {
+
+  // Reset Watchdog
+  wdt_reset();
+  
  if ( temp_last_update + temp_requests_time < millis() ) {
    Serial.println("Updating temp sensors");
    request_update_temp_sensors();
@@ -323,16 +330,6 @@ void loop() {
  digitalWrite(p_safety, disable_laser); // Write out pin state
 
  update_display();
- 
- 
-  // DEBUG CODE
-  //if (digitalRead(13) == LOW) {
-    // generate artificial hang:
-  //  Serial.println("Generating hang...");
-  //  delay(10000);
-  //}
-
-  //wdt_reset();
 }
 
 
