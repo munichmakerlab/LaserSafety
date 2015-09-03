@@ -315,7 +315,7 @@ void request_update_temp_sensors() {
 void loop() {
 
   // Reset Watchdog
-  wdt_reset();
+ wdt_reset();
   
  if ( temp_last_update + temp_requests_time < millis() ) {
    Serial.println("Updating temp sensors");
@@ -331,87 +331,3 @@ void loop() {
 
  update_display();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ######################## disused junk ##################
-
-
-
-
-void doImportantStuff_outdated() {
-  get_sensor_states(); // set all the s_ variables from input
-  set_safety_flag(); // check all variables, then set safety_flag
-  disable_laser = ! safety_flag; // If save operation not garateed, disable laser (HIGH Output will disable the laser!)
-  digitalWrite(p_safety, disable_laser); // Write out pin state
-  
-  update_display(); // Send the states to the display panel via I2C
-  
-  Serial.println(safety_flag);
-  wdt_reset(); // reset the watchdog timer
-  
-  // Maybe add something to verify the temperatures (in loop()) were updated some reasonable time ago
-}
-
-//ISR(WDT_vect) // Watchdog timer interrupt.
-//{
-//  digitalWrite(p_safety, HIGH);
-//  Serial.println("Watchodg");
-  //
-
-//  while (true) {
-    // Loop forever
-//  }
-
-//}
-
-
-void watchdogSetup(void)
-{
-  cli();  // disable all interrupts
-  wdt_reset(); // reset the WDT timer
-  /*
-   WDTCSR configuration:
-   WDIE = 1: Interrupt Enable
-   WDE = 1 :Reset Enable
-   WDP3 = 0 :For 2000ms Time-out
-   WDP2 = 1 :For 2000ms Time-out
-   WDP1 = 1 :For 2000ms Time-out
-   WDP0 = 1 :For 2000ms Time-out
-  */
-  // Enter Watchdog Configuration mode:
-  WDTCSR |= (1 << WDCE) | (0 << WDE);
-  // Set Watchdog settings:
-  WDTCSR = (1 << WDIE) | (0 << WDE) | ( 1 << WDP3) | (1 << WDP2) | (1 << WDP1) | (1 << WDP0);
-  sei();
-}
-
