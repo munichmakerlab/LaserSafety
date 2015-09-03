@@ -208,6 +208,7 @@ bool check_flow() {
 }
 
 float messure_flow_over_time() {
+ // Serial.println("messuring flow over time");
  NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
  delay(1000);      //Wait 1 second
  return ((NbTopsFan * 60 / 7.5) / 60); //((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in L per minute (normal ~5)
@@ -227,7 +228,7 @@ void get_sensor_states() {
 
   // s_temp1
   s_temp1 = temp_sensors.getTempC(water_inlet);
-  Serial.println(s_temp1);
+  // Serial.println(s_temp1);
 
   if (s_temp1 > temp1_min && s_temp1 < temp1_max ) {
     s_temp1_ok = true;
@@ -237,7 +238,7 @@ void get_sensor_states() {
 
   // s_temp2
   s_temp2 = temp_sensors.getTempC(water_outlet);
-  Serial.println(s_temp2);
+  // Serial.println(s_temp2);
 
   if (s_temp2 > temp2_min && s_temp2 < temp2_max) {
     s_temp2_ok = true;
@@ -293,7 +294,12 @@ void update_display() {
   generic_display_state(11, s_waterleak1_ok);
   generic_display_state(13, s_waterleak2_ok);
   generic_display_state(15, s_waterleak3_ok);
-  Serial.println("");
+  Serial.print("\nTemps:");
+  Serial.print("Out: ");
+  Serial.print(s_temp1);
+  Serial.print(" / In: ");
+  Serial.println(s_temp2);
+  
 }
 
 void request_update_temp_sensors() {
@@ -311,7 +317,8 @@ void loop() {
  wdt_reset();
   
  if ( temp_last_update + temp_requests_time < millis() ) {
-   Serial.println("Updating temp sensors");
+   // Serial.println("Updating temp sensors");
+   Serial.println("-----");
    request_update_temp_sensors();
  }
  
