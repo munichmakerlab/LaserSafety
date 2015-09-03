@@ -196,13 +196,16 @@ bool check_generic_HIGH(int pin) {
 }
 
 bool check_flow() {
+  Serial.println("check_flow()");
   volume = messure_flow_over_time();
   Serial.print (volume); //Prints the number calculated above (x ,DEC)
   Serial.print (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
   
   if (volume > volume_min && volume < volume_max ) {
+    Serial.println("flow ok");
     return true;
   } else {
+    Serial.println("flow not ok");
     return false;
   }
 }
@@ -247,6 +250,8 @@ void get_sensor_states() {
   }
   
   s_waterflow_ok = check_flow();
+
+  Serial.println("get_sensor_states() done");
   
 }
 
@@ -322,12 +327,14 @@ void loop() {
    request_update_temp_sensors();
  }
  
- 
+ Serial.println("get_sensor_states()");
  get_sensor_states();
- 
+
+ Serial.println("set_safety_flag()");
  set_safety_flag(); 
  disable_laser = safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
- digitalWrite(p_safety, disable_laser); // Write out pin state
+ digitalWrite(p_safety, disable_laser); // Write out pin state 
 
+ Serial.println("update_display");
  update_display();
 }
