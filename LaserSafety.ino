@@ -217,13 +217,6 @@ float messure_flow_over_time() {
 
 void get_sensor_states() {
 
-  // s_lid_ok
-  //if (digitalRead(p_lid) == LOW) {
-  //  s_lid_ok = true;
-  //} else {
-  //  s_lid_ok = false;
-  //}
-
   // s_pressure_ok
   s_pressure_ok = check_generic_LOW(p_pressure);
 
