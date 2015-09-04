@@ -277,9 +277,11 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 void generic_display_state(int pin, bool state){
   Serial.print(state);
   if (state) {
+    Serial.println("true");
     Set_LED_PWM(pin, 255);
     Set_LED_PWM(pin+1, 0);
   } else {
+    Serial.println("false");
     Set_LED_PWM(pin, 0);
     Set_LED_PWM(pin+1, 255);
   }
