@@ -40,6 +40,9 @@ float temp1_max = 27;
 float temp2_min = 8.0;
 float temp2_max = 26;
 
+bool temp1_fail_last_cycle = false;
+bool temp2_fail_last_cycle = false;
+
 
 // Dallas temp sensor adresses 
 DeviceAddress water_outlet = {0x28, 0x04, 0xDD, 0xAC, 0x04, 0x00, 0x00, 0x55};
@@ -235,8 +238,14 @@ void get_sensor_states() {
 
   if (s_temp1 > temp1_min && s_temp1 < temp1_max ) {
     s_temp1_ok = true;
+    temp1_fail_last_cycle = false;
   } else {
-    s_temp1_ok = false;
+    if (s_temp1 == -127.00 && ! temp1_fail_last_cycle){  //If the temp doesn't make sense but did last cycle
+      s_temp1_ok = true; // Go on
+      temp1_fail_last_cycle = true; // But remember that something was wrong
+    } else { // It's just too low or high, but plausible
+      s_temp1_ok = false;
+    }
   }
 
   // s_temp2
@@ -245,8 +254,14 @@ void get_sensor_states() {
 
   if (s_temp2 > temp2_min && s_temp2 < temp2_max) {
     s_temp2_ok = true;
+    temp2_fail_last_cycle = false;
   } else {
-    s_temp2_ok = false;
+    if (s_temp2 == -127.00 && ! temp2_fail_last_cycle){  //If the temp doesn't make sense but did last cycle
+      s_temp2_ok = true; // Go on
+      temp2_fail_last_cycle = true; // But remember that something was wrong
+    } else { // It's just too low or high, but plausible
+      s_temp2_ok = false;
+    }
   }
   
   s_waterflow_ok = check_flow();
