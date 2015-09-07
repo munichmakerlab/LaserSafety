@@ -214,7 +214,7 @@ bool check_flow() {
 }
 
 float messure_flow_over_time() {
- // Serial.println("messuring flow over time");
+ Serial.println("messure_flow_over_time()");
  NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
  delay(1000);      //Wait 1 second
  return ((NbTopsFan * 60 / 7.5) / 60); //((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in L per minute (normal ~5)
