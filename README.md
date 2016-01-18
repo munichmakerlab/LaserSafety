@@ -1,6 +1,9 @@
 # LaserSafety
 Arduino code for the lasercutter safety system
 
+See the control panel:
+http://log.munichmakerlab.de/day/2015/04/27
+
 # Sensors
 * Flowsensor FS300a
 * 2x Dallas 1Wire temperature sensors
