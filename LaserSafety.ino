@@ -1,6 +1,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+#include <Servo.h>
 #include <Wire.h>
 #include <EEPROM.h>
 #include <TimerOne.h>
@@ -17,6 +18,9 @@
 
 #define p_safety 13 // The output pin to the laser controller
 
+#define p_pilot_switch 10
+#define p_pilot_laser_power 8
+#define p_pilot_motor_servo 9
 
 // Sensor states
 bool s_waterflow_ok = false;
@@ -26,6 +30,8 @@ bool s_waterleak2_ok = false;
 bool s_waterleak3_ok = false;
 bool s_temp1_ok = false;
 bool s_temp2_ok = false;
+
+bool s_pilot_laser_ok = false;
 
 bool safety_flag = false;
 bool disable_laser = true;
@@ -59,6 +65,9 @@ float volume;
 float volume_min = 4;
 float volume_max = 7;
 volatile int NbTopsFan; //measuring the rising edges of the signal                               
+
+// Servo for pilot laser
+Servo pilot_servo;
 
 // ################## setup functions #################
 
@@ -157,6 +166,10 @@ void setup() {
   pinMode(p_waterleak2, INPUT); 
   pinMode(p_waterleak3, INPUT);
   pinMode(p_flow_sensor, INPUT);
+  pinMode(p_pilot_switch, INPUT);
+
+  pinMode(p_pilot_laser_power, OUTPUT);
+  pilot_servo.attach(9);
   
   attachInterrupt(0, count_rpms_flow_sensor, RISING); //flow sensor
 
@@ -351,6 +364,15 @@ void loop() {
  set_safety_flag(); 
  disable_laser = safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
  digitalWrite(p_safety, disable_laser); // Write out pin state 
+
+ Serial.println("handle pilot laser");
+ if (check_generic_HIGH(p_pilot_switch)) {
+  s_pilot_laser_ok = false;
+  pilot_servo.write(90);
+ } else {
+  pilot_servo.write(0);
+  s_pilot_laser_ok = true; 
+ }
 
  Serial.println("update_display");
  update_display();
