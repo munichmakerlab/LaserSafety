@@ -102,7 +102,7 @@ float volume_max = 7;
 volatile int NbTopsFan; //measuring the rising edges of the signal                               
 
 // function prototypes to overwrite Arduino auto-prototyping
-bool check_temperature(float threshold_min, float threhold_max, bool &temp_fail_last_cycle);
+bool check_temperature(float &temp_reading, float &threshold_min, float &threhold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr);
 
 
 // ################## setup functions #################
@@ -268,20 +268,19 @@ float messure_flow_over_time() {
 }
 
     
-bool check_temperature(float threshold_min, float threhold_max, bool &temp_fail_last_cycle) {
-  float s_temp;
+bool check_temperature(float &temp_reading, float threshold_min, float threhold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr) {
   bool res = false;
-  
-  s_temp = temp_sensors.getTempC(water_inlet);
+
+  temp_reading = temp_sensors.getTempC(SensorAddr);
   // is s_temp within our threshold range?
-  if ( threshold_min < s_temp)  {
-    if ( s_temp < threshold_max ) {
+  if ( threshold_min < temp_reading)  {
+    if ( temp_reading < threshold_max ) {
       res = true;
       temp_fail_last_cycle = false;
       }
     } else {
       //If the temp doesn't make sense (-127.00) but the last reading cycle did make sense, then...
-      if ( -127.00 == s_temp)  {
+      if ( -127.00 == temp_reading)  {
       	 if (! temp_fail_last_cycle)  {  
            res = true; 		      	 // ...go on
            temp_fail_last_cycle = true;  // But remember that something was wrong.
@@ -305,8 +304,8 @@ void get_sensor_states() {
   s_waterleak3_ok = check_generic_HIGH(p_waterleak3);
 
   // temperatur sensors
-  s_temp1_ok = check_temperature(temp1_min, temp1_max, temp1_fail_last_cycle);
-  s_temp2_ok = check_temperature(temp2_min, temp2_max, temp2_fail_last_cycle);
+  s_temp1_ok = check_temperature(s_temp1,temp1_min, temp1_max, temp1_fail_last_cycle, water_outlet);
+  s_temp2_ok = check_temperature(s_temp2,temp2_min, temp2_max, temp2_fail_last_cycle, water_inlet );
 
   s_waterflow_ok = check_flow();
 
