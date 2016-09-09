@@ -1,3 +1,41 @@
+//          PIN LAYOUT 
+//                                       +-----+
+//          +----[PWR]-------------------| USB |--+
+//          |                            +-----+  |
+//          |         GND/RST2  [ ][ ]            |
+//          |       MOSI2/SCK2  [ ][ ]  A5/SCL[ ] |   C5 
+//          |          5V/MISO2 [ ][ ]  A4/SDA[ ] |   C4 
+//          |                             AREF[ ] |
+//          |                              GND[ ] |
+//          | [ ]N/C                    SCK/13[ ] |   B5   OUT    Laser Controller:     p_safety 
+//          | [ ]IOREF                 MISO/12[ ] |   .
+//          | [ ]RST                   MOSI/11[ ]~|   .
+//          | [ ]3V3    +---+               10[ ]~|   .
+//          | [ ]5v    -| A |-               9[ ]~|   .
+//          | [ ]GND   -| R |-               8[ ] |   B0
+//          | [ ]GND   -| D |-                    |
+//          | [ ]Vin   -| U |-               7[ ] |   D7    I/O   One Wire bus:         p_onewire
+//          |          -| I |-               6[ ]~|   D6    IN    Water leak sensor:    p_waterleak3
+//          | [ ]A0    -| N |-               5[ ]~|   D5    IN    Water leak sensor:    p_waterleak2
+//          | [ ]A1    -| O |-               4[ ] |   D4    IN    Water leak sensor:    p_waterleak1
+//          | [ ]A2     +---+           INT1/3[ ]~|   D3    IN    Pressure Sensor:      p_pressure
+//          | [ ]A3                     INT0/2[ ] |   D2    IN    Flow sensor:          p_flow_sensor
+//          | [ ]A4/SDA  RST SCK MISO     TX>1[ ] |   D1
+//          | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] |   D0
+//          |            [ ] [ ] [ ]              |
+//          |  UNO_R3    GND MOSI 5V  ____________/
+//           \_______________________/
+  
+// Source:	  http://busyducks.com/ascii-art-arduinos
+
+#ifdef DEBUG
+ #define DEBUG_PRINT(x)   Serial.print (x)
+ #define DEBUG_PRINTLN(x) Serial.println (x)
+#else
+ #define DEBUG_PRINT(x)
+ #define DEBUG_PRINTLN(x) 
+#endif
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
