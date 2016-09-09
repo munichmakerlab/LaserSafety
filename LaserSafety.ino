@@ -28,6 +28,9 @@
   
 // Source:	  http://busyducks.com/ascii-art-arduinos
 
+// Set debug to 1 if you would like to receive msgs on the Serial bus.
+#define DEBUG 1
+
 #ifdef DEBUG
  #define DEBUG_PRINT(x)   Serial.print (x)
  #define DEBUG_PRINTLN(x) Serial.println (x)
@@ -239,8 +242,8 @@ bool check_generic_HIGH(int pin) {
 bool check_flow() {
   DEBUG_PRINTLN("check_flow()");
   volume = messure_flow_over_time();
-  Serial.print (volume); //Prints the number calculated above (x ,DEC)
-  Serial.print (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
+  DEBUG_PRINT (volume); //Prints the number calculated above (x ,DEC)
+  DEBUG_PRINT (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
   
   if (volume > volume_min && volume < volume_max ) {
     DEBUG_PRINTLN("flow ok");
@@ -255,7 +258,9 @@ float messure_flow_over_time() {
  DEBUG_PRINTLN("messure_flow_over_time()");
  NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
  delay(1000);      //Wait 1 second
- return ((NbTopsFan * 60 / 7.5) / 60); //((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in L per minute (normal ~5)
+
+// ((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in liters per minute (normal ~5)
+ return ((NbTopsFan * 60 / 7.5) / 60); 
 }
     
 
@@ -308,7 +313,7 @@ void get_sensor_states() {
   
 }
 
-void set_safety_flag() { // Checks, if all inputs indicate safe performance, then sets safety_flag
+void set_safety_flag() { // Checks, if all inputs indicate safe operation, then sets safety_flag
   if (
     s_pressure_ok &&
     s_waterflow_ok &&
@@ -328,7 +333,7 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 }
 
 void generic_display_state(int pin, bool state){
-  Serial.print(state);
+  DEBUG_PRINT(state);
   if (state) {
     DEBUG_PRINTLN("true");
     Set_LED_PWM(pin, 255);
@@ -344,7 +349,7 @@ void update_display() {
   // Write out sensor states to i2c
   // (Counting from 1!)
   
-  Serial.print("States: ");
+  DEBUG_PRINT("States: ");
   generic_display_state(1, safety_flag);
   
   generic_display_state(3, s_pressure_ok);
@@ -354,10 +359,10 @@ void update_display() {
   generic_display_state(11, s_waterleak1_ok);
   generic_display_state(13, s_waterleak2_ok);
   generic_display_state(15, s_waterleak3_ok);
-  Serial.print("\nTemps:");
-  Serial.print("Out: ");
-  Serial.print(s_temp1);
-  Serial.print(" / In: ");
+  DEBUG_PRINT("\nTemps:");
+  DEBUG_PRINT("Out: ");
+  DEBUG_PRINT(s_temp1);
+  DEBUG_PRINT(" / In: ");
   DEBUG_PRINTLN(s_temp2);
   
 }
