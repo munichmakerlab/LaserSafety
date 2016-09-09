@@ -179,7 +179,7 @@ void setup() {
   digitalWrite(p_safety, HIGH);
 
   Serial.begin(9600);
-  Serial.println("START;");
+  DEBUG_PRINTLN("START;");
 
   // init Display
   i2c_setup();
@@ -237,22 +237,22 @@ bool check_generic_HIGH(int pin) {
 }
 
 bool check_flow() {
-  Serial.println("check_flow()");
+  DEBUG_PRINTLN("check_flow()");
   volume = messure_flow_over_time();
   Serial.print (volume); //Prints the number calculated above (x ,DEC)
   Serial.print (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
   
   if (volume > volume_min && volume < volume_max ) {
-    Serial.println("flow ok");
+    DEBUG_PRINTLN("flow ok");
     return true;
   } else {
-    Serial.println("flow not ok");
+    DEBUG_PRINTLN("flow not ok");
     return false;
   }
 }
 
 float messure_flow_over_time() {
- Serial.println("messure_flow_over_time()");
+ DEBUG_PRINTLN("messure_flow_over_time()");
  NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
  delay(1000);      //Wait 1 second
  return ((NbTopsFan * 60 / 7.5) / 60); //((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in L per minute (normal ~5)
@@ -272,7 +272,7 @@ void get_sensor_states() {
 
   // s_temp1
   s_temp1 = temp_sensors.getTempC(water_inlet);
-  // Serial.println(s_temp1);
+  // DEBUG_PRINTLN(s_temp1);
 
   if (s_temp1 > temp1_min && s_temp1 < temp1_max ) {
     s_temp1_ok = true;
@@ -288,7 +288,7 @@ void get_sensor_states() {
 
   // s_temp2
   s_temp2 = temp_sensors.getTempC(water_outlet);
-  // Serial.println(s_temp2);
+  // DEBUG_PRINTLN(s_temp2);
 
   if (s_temp2 > temp2_min && s_temp2 < temp2_max) {
     s_temp2_ok = true;
@@ -304,7 +304,7 @@ void get_sensor_states() {
   
   s_waterflow_ok = check_flow();
 
-  Serial.println("get_sensor_states() done");
+  DEBUG_PRINTLN("get_sensor_states() done");
   
 }
 
@@ -320,7 +320,7 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
   )
   {
     safety_flag = true;
-    // Serial.println("True");
+    // DEBUG_PRINTLN("True");
   } else {
     safety_flag = false;
   }
@@ -330,11 +330,11 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 void generic_display_state(int pin, bool state){
   Serial.print(state);
   if (state) {
-    Serial.println("true");
+    DEBUG_PRINTLN("true");
     Set_LED_PWM(pin, 255);
     Set_LED_PWM(pin+1, 0);
   } else {
-    Serial.println("false");
+    DEBUG_PRINTLN("false");
     Set_LED_PWM(pin, 0);
     Set_LED_PWM(pin+1, 255);
   }
@@ -358,7 +358,7 @@ void update_display() {
   Serial.print("Out: ");
   Serial.print(s_temp1);
   Serial.print(" / In: ");
-  Serial.println(s_temp2);
+  DEBUG_PRINTLN(s_temp2);
   
 }
 
@@ -377,19 +377,19 @@ void loop() {
  wdt_reset();
   
  if ( temp_last_update + temp_requests_time < millis() ) {
-   // Serial.println("Updating temp sensors");
-   Serial.println("-----");
+   // DEBUG_PRINTLN("Updating temp sensors");
+   DEBUG_PRINTLN("-----");
    request_update_temp_sensors();
  }
  
- Serial.println("get_sensor_states()");
+ DEBUG_PRINTLN("get_sensor_states()");
  get_sensor_states();
 
- Serial.println("set_safety_flag()");
+ DEBUG_PRINTLN("set_safety_flag()");
  set_safety_flag(); 
  disable_laser = safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
  digitalWrite(p_safety, disable_laser); // Write out pin state 
 
- Serial.println("update_display");
+ DEBUG_PRINTLN("update_display");
  update_display();
 }
