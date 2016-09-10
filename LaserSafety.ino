@@ -304,8 +304,8 @@ void get_sensor_states() {
   s_waterleak3_ok = check_generic_HIGH(p_waterleak3);
 
   // temperatur sensors
-  s_temp1_ok = check_temperature(s_temp1,temp1_min, temp1_max, temp1_fail_last_cycle, water_outlet);
-  s_temp2_ok = check_temperature(s_temp2,temp2_min, temp2_max, temp2_fail_last_cycle, water_inlet );
+  s_temp1_ok = check_temperature(s_temp1,temp1_min, temp1_max, temp1_fail_last_cycle, water_inlet);
+  s_temp2_ok = check_temperature(s_temp2,temp2_min, temp2_max, temp2_fail_last_cycle, water_outlet );
 
   s_waterflow_ok = check_flow();
 
@@ -360,9 +360,9 @@ void update_display() {
   generic_display_state(13, s_waterleak2_ok);
   generic_display_state(15, s_waterleak3_ok);
   DEBUG_PRINT("\nTemps:");
-  DEBUG_PRINT("Out: ");
+  DEBUG_PRINT("water inlet temperature: ");
   DEBUG_PRINT(s_temp1);
-  DEBUG_PRINT(" / In: ");
+  DEBUG_PRINT(" / water outlet temperature: ");
   DEBUG_PRINTLN(s_temp2);
   
 }
