@@ -29,7 +29,7 @@
 // Source:	  http://busyducks.com/ascii-art-arduinos
 
 // Set debug to 1 if you would like to receive msgs on the Serial bus.
-#define DEBUG 1
+#define DEBUG 0
 
 #ifdef DEBUG
  #define DEBUG_PRINT(x)   Serial.print (x)
@@ -102,7 +102,7 @@ float volume_max = 7;
 volatile int NbTopsFan; //measuring the rising edges of the signal                               
 
 // function prototypes to overwrite Arduino auto-prototyping
-bool check_temperature(float &temp_reading, float &threshold_min, float &threhold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr);
+bool check_temperature(float &temp_reading, float threshold_min, float threshold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr);
 
 
 // ################## setup functions #################
@@ -183,7 +183,7 @@ void setup() {
   wdt_disable();
   
   pinMode(p_safety, OUTPUT);
-  digitalWrite(p_safety, HIGH);
+  digitalWrite(p_safety, LOW);
 
   Serial.begin(9600);
   DEBUG_PRINTLN("START;");
@@ -268,7 +268,7 @@ float messure_flow_over_time() {
 }
 
     
-bool check_temperature(float &temp_reading, float threshold_min, float threhold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr) {
+bool check_temperature(float &temp_reading, float threshold_min, float threshold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr) {
   bool res = false;
 
   temp_reading = temp_sensors.getTempC(SensorAddr);
@@ -305,7 +305,7 @@ void get_sensor_states() {
 
   // temperatur sensors
   s_temp1_ok = check_temperature(s_temp1,temp1_min, temp1_max, temp1_fail_last_cycle, water_inlet);
-  s_temp2_ok = check_temperature(s_temp2,temp2_min, temp2_max, temp2_fail_last_cycle, water_outlet );
+  s_temp2_ok = check_temperature(s_temp2,temp2_min, temp2_max, temp2_fail_last_cycle, water_outlet);
 
   s_waterflow_ok = check_flow();
 
