@@ -166,7 +166,8 @@ void setup() {
   pinMode(p_waterleak2, INPUT); 
   pinMode(p_waterleak3, INPUT);
   pinMode(p_flow_sensor, INPUT);
-  pinMode(p_pilot_switch, INPUT);
+  
+  pinMode(p_pilot_switch, INPUT_PULLUP);
 
   pinMode(p_pilot_laser_power, OUTPUT);
   pilot_servo.attach(9);
