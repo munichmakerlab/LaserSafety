@@ -292,7 +292,8 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
     s_waterleak2_ok &&
     s_waterleak3_ok &&
     s_temp1_ok &&
-    s_temp2_ok 
+    s_temp2_ok &&
+    s_pilot_laser_ok
   )
   {
     safety_flag = true;
@@ -367,11 +368,13 @@ void loop() {
  digitalWrite(p_safety, disable_laser); // Write out pin state 
 
  Serial.println("handle pilot laser");
- if (check_generic_HIGH(p_pilot_switch)) {
+ if (check_generic_LOW(p_pilot_switch)) {
   s_pilot_laser_ok = false;
   pilot_servo.write(90);
+  Serial.println("Pilot Laser in the way");
  } else {
   pilot_servo.write(0);
+  Serial.println("Pilot Laser ok");
   s_pilot_laser_ok = true; 
  }
 
