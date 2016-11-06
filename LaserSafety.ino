@@ -57,7 +57,7 @@ unsigned long temp_last_update;
 // Flow sensor
 float volume;
 float volume_min = 4;
-float volume_max = 7;
+float volume_max = 10;
 volatile int NbTopsFan; //measuring the rising edges of the signal                               
 
 // ################## setup functions #################
