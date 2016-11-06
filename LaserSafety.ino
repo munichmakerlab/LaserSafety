@@ -1,3 +1,44 @@
+//          PIN LAYOUT 
+//                                       +-----+
+//          +----[PWR]-------------------| USB |--+
+//          |                            +-----+  |
+//          |         GND/RST2  [ ][ ]            |
+//          |       MOSI2/SCK2  [ ][ ]  A5/SCL[ ] |   C5 
+//          |          5V/MISO2 [ ][ ]  A4/SDA[ ] |   C4 
+//          |                             AREF[ ] |
+//          |                              GND[ ] |
+//          | [ ]N/C                    SCK/13[ ] |   B5   OUT    Laser Controller:     p_safety 
+//          | [ ]IOREF                 MISO/12[ ] |   .
+//          | [ ]RST                   MOSI/11[ ]~|   .
+//          | [ ]3V3    +---+               10[ ]~|   .
+//          | [ ]5v    -| A |-               9[ ]~|   .
+//          | [ ]GND   -| R |-               8[ ] |   B0
+//          | [ ]GND   -| D |-                    |
+//          | [ ]Vin   -| U |-               7[ ] |   D7    I/O   One Wire bus:         p_onewire
+//          |          -| I |-               6[ ]~|   D6    IN    Water leak sensor:    p_waterleak3
+//          | [ ]A0    -| N |-               5[ ]~|   D5    IN    Water leak sensor:    p_waterleak2
+//          | [ ]A1    -| O |-               4[ ] |   D4    IN    Water leak sensor:    p_waterleak1
+//          | [ ]A2     +---+           INT1/3[ ]~|   D3    IN    Pressure Sensor:      p_pressure
+//          | [ ]A3                     INT0/2[ ] |   D2    IN    Flow sensor:          p_flow_sensor
+//          | [ ]A4/SDA  RST SCK MISO     TX>1[ ] |   D1
+//          | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] |   D0
+//          |            [ ] [ ] [ ]              |
+//          |  UNO_R3    GND MOSI 5V  ____________/
+//           \_______________________/
+  
+// Source:	  http://busyducks.com/ascii-art-arduinos
+
+// Set debug to 1 if you would like to receive msgs on the Serial bus.
+#define DEBUG 0
+
+#ifdef DEBUG
+ #define DEBUG_PRINT(x)   Serial.print (x)
+ #define DEBUG_PRINTLN(x) Serial.println (x)
+#else
+ #define DEBUG_PRINT(x)
+ #define DEBUG_PRINTLN(x) 
+#endif
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
@@ -59,6 +100,10 @@ float volume;
 float volume_min = 4;
 float volume_max = 10;
 volatile int NbTopsFan; //measuring the rising edges of the signal                               
+
+// function prototypes to overwrite Arduino auto-prototyping
+bool check_temperature(float &temp_reading, float threshold_min, float threshold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr);
+
 
 // ################## setup functions #################
 
@@ -138,10 +183,10 @@ void setup() {
   wdt_disable();
   
   pinMode(p_safety, OUTPUT);
-  digitalWrite(p_safety, HIGH);
+  digitalWrite(p_safety, LOW);
 
   Serial.begin(9600);
-  Serial.println("START;");
+  DEBUG_PRINTLN("START;");
 
   // init Display
   i2c_setup();
@@ -199,27 +244,53 @@ bool check_generic_HIGH(int pin) {
 }
 
 bool check_flow() {
-  Serial.println("check_flow()");
+  DEBUG_PRINTLN("check_flow()");
   volume = messure_flow_over_time();
-  Serial.print (volume); //Prints the number calculated above (x ,DEC)
-  Serial.print (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
+  DEBUG_PRINT (volume); //Prints the number calculated above (x ,DEC)
+  DEBUG_PRINT (" L/hour\r\n"); //Prints "L/hour" and returns a  new line
   
   if (volume > volume_min && volume < volume_max ) {
-    Serial.println("flow ok");
+    DEBUG_PRINTLN("flow ok");
     return true;
   } else {
-    Serial.println("flow not ok");
+    DEBUG_PRINTLN("flow not ok");
     return false;
   }
 }
 
 float messure_flow_over_time() {
- Serial.println("messure_flow_over_time()");
+ DEBUG_PRINTLN("messure_flow_over_time()");
  NbTopsFan = 0;      //Set NbTops to 0 ready for calculations
  delay(1000);      //Wait 1 second
- return ((NbTopsFan * 60 / 7.5) / 60); //((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in L per minute (normal ~5)
+
+// ((Pulse frequency x 60) / 7.5Q,) / 60 = flow rate in liters per minute (normal ~5)
+ return ((NbTopsFan * 60 / 7.5) / 60); 
 }
+
     
+bool check_temperature(float &temp_reading, float threshold_min, float threshold_max, bool &temp_fail_last_cycle, DeviceAddress &SensorAddr) {
+  bool res = false;
+
+  temp_reading = temp_sensors.getTempC(SensorAddr);
+  // is s_temp within our threshold range?
+  if ( threshold_min < temp_reading)  {
+    if ( temp_reading < threshold_max ) {
+      res = true;
+      temp_fail_last_cycle = false;
+      }
+    } else {
+      //If the temp doesn't make sense (-127.00) but the last reading cycle did make sense, then...
+      if ( -127.00 == temp_reading)  {
+      	 if (! temp_fail_last_cycle)  {  
+           res = true; 		      	 // ...go on
+           temp_fail_last_cycle = true;  // But remember that something was wrong.
+	}
+      } else { // It's just too low or high, but plausible
+        res = false;
+      }
+    }
+  return res;  
+}
 
 
 void get_sensor_states() {
@@ -232,45 +303,17 @@ void get_sensor_states() {
   s_waterleak2_ok = check_generic_HIGH(p_waterleak2);
   s_waterleak3_ok = check_generic_HIGH(p_waterleak3);
 
-  // s_temp1
-  s_temp1 = temp_sensors.getTempC(water_inlet);
-  // Serial.println(s_temp1);
+  // temperatur sensors
+  s_temp1_ok = check_temperature(s_temp1,temp1_min, temp1_max, temp1_fail_last_cycle, water_inlet);
+  s_temp2_ok = check_temperature(s_temp2,temp2_min, temp2_max, temp2_fail_last_cycle, water_outlet);
 
-  if (s_temp1 > temp1_min && s_temp1 < temp1_max ) {
-    s_temp1_ok = true;
-    temp1_fail_last_cycle = false;
-  } else {
-    if (s_temp1 == -127.00 && ! temp1_fail_last_cycle){  //If the temp doesn't make sense but did last cycle
-      s_temp1_ok = true; // Go on
-      temp1_fail_last_cycle = true; // But remember that something was wrong
-    } else { // It's just too low or high, but plausible
-      s_temp1_ok = false;
-    }
-  }
-
-  // s_temp2
-  s_temp2 = temp_sensors.getTempC(water_outlet);
-  // Serial.println(s_temp2);
-
-  if (s_temp2 > temp2_min && s_temp2 < temp2_max) {
-    s_temp2_ok = true;
-    temp2_fail_last_cycle = false;
-  } else {
-    if (s_temp2 == -127.00 && ! temp2_fail_last_cycle){  //If the temp doesn't make sense but did last cycle
-      s_temp2_ok = true; // Go on
-      temp2_fail_last_cycle = true; // But remember that something was wrong
-    } else { // It's just too low or high, but plausible
-      s_temp2_ok = false;
-    }
-  }
-  
   s_waterflow_ok = check_flow();
 
-  Serial.println("get_sensor_states() done");
+  DEBUG_PRINTLN("get_sensor_states() done");
   
 }
 
-void set_safety_flag() { // Checks, if all inputs indicate safe performance, then sets safety_flag
+void set_safety_flag() { // Checks, if all inputs indicate safe operation, then sets safety_flag
   if (
     s_pressure_ok &&
     s_waterflow_ok &&
@@ -282,7 +325,7 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
   )
   {
     safety_flag = true;
-    // Serial.println("True");
+    // DEBUG_PRINTLN("True");
   } else {
     safety_flag = false;
   }
@@ -290,13 +333,13 @@ void set_safety_flag() { // Checks, if all inputs indicate safe performance, the
 }
 
 void generic_display_state(int pin, bool state){
-  Serial.print(state);
+  DEBUG_PRINT(state);
   if (state) {
-    Serial.println("true");
+    DEBUG_PRINTLN("true");
     Set_LED_PWM(pin, 255);
     Set_LED_PWM(pin+1, 0);
   } else {
-    Serial.println("false");
+    DEBUG_PRINTLN("false");
     Set_LED_PWM(pin, 0);
     Set_LED_PWM(pin+1, 255);
   }
@@ -306,7 +349,7 @@ void update_display() {
   // Write out sensor states to i2c
   // (Counting from 1!)
   
-  Serial.print("States: ");
+  DEBUG_PRINT("States: ");
   generic_display_state(1, safety_flag);
   
   generic_display_state(3, s_pressure_ok);
@@ -316,11 +359,11 @@ void update_display() {
   generic_display_state(11, s_waterleak1_ok);
   generic_display_state(13, s_waterleak2_ok);
   generic_display_state(15, s_waterleak3_ok);
-  Serial.print("\nTemps:");
-  Serial.print("Out: ");
-  Serial.print(s_temp1);
-  Serial.print(" / In: ");
-  Serial.println(s_temp2);
+  DEBUG_PRINT("\nTemps:");
+  DEBUG_PRINT("water inlet temperature: ");
+  DEBUG_PRINT(s_temp1);
+  DEBUG_PRINT(" / water outlet temperature: ");
+  DEBUG_PRINTLN(s_temp2);
   
 }
 
@@ -339,19 +382,19 @@ void loop() {
  wdt_reset();
   
  if ( temp_last_update + temp_requests_time < millis() ) {
-   // Serial.println("Updating temp sensors");
-   Serial.println("-----");
+   // DEBUG_PRINTLN("Updating temp sensors");
+   DEBUG_PRINTLN("-----");
    request_update_temp_sensors();
  }
  
- Serial.println("get_sensor_states()");
+ DEBUG_PRINTLN("get_sensor_states()");
  get_sensor_states();
 
- Serial.println("set_safety_flag()");
+ DEBUG_PRINTLN("set_safety_flag()");
  set_safety_flag(); 
  disable_laser = safety_flag; // If save operation not ok, disable laser (HIGH Output will disable the laser!)
  digitalWrite(p_safety, disable_laser); // Write out pin state 
 
- Serial.println("update_display");
+ DEBUG_PRINTLN("update_display");
  update_display();
 }
