@@ -50,9 +50,9 @@
 // Pins
 #define p_flow_sensor 2 
 #define p_pressure 3
-#define p_waterleak1 4
-#define p_waterleak2 5
-#define p_waterleak3 6
+//#define p_waterleak1 4
+//#define p_waterleak2 5
+//#define p_waterleak3 6
 
 #define p_onewire 7
 
@@ -62,9 +62,9 @@
 // Sensor states
 bool s_waterflow_ok = false;
 bool s_pressure_ok = false;
-bool s_waterleak1_ok = false;
-bool s_waterleak2_ok = false;
-bool s_waterleak3_ok = false;
+//bool s_waterleak1_ok = false;
+//bool s_waterleak2_ok = false;
+//bool s_waterleak3_ok = false;
 bool s_temp1_ok = false;
 bool s_temp2_ok = false;
 
@@ -198,9 +198,9 @@ void setup() {
   //pinMode(p_lid, INPUT_PULLUP);
   //pinMode(p_waterflow, INPUT_PULLUP);
   pinMode(p_pressure, INPUT);
-  pinMode(p_waterleak1, INPUT);
-  pinMode(p_waterleak2, INPUT); 
-  pinMode(p_waterleak3, INPUT);
+//  pinMode(p_waterleak1, INPUT);
+//  pinMode(p_waterleak2, INPUT); 
+//  pinMode(p_waterleak3, INPUT);
   pinMode(p_flow_sensor, INPUT);
   
   attachInterrupt(0, count_rpms_flow_sensor, RISING); //flow sensor
@@ -299,9 +299,9 @@ void get_sensor_states() {
   s_pressure_ok = check_generic_LOW(p_pressure);
 
   // s_waterleak
-  s_waterleak1_ok = check_generic_HIGH(p_waterleak1);
-  s_waterleak2_ok = check_generic_HIGH(p_waterleak2);
-  s_waterleak3_ok = check_generic_HIGH(p_waterleak3);
+//  s_waterleak1_ok = check_generic_HIGH(p_waterleak1);
+//  s_waterleak2_ok = check_generic_HIGH(p_waterleak2);
+//  s_waterleak3_ok = check_generic_HIGH(p_waterleak3);
 
   // temperatur sensors
   s_temp1_ok = check_temperature(s_temp1,temp1_min, temp1_max, temp1_fail_last_cycle, water_inlet);
@@ -317,9 +317,9 @@ void set_safety_flag() { // Checks, if all inputs indicate safe operation, then 
   if (
     s_pressure_ok &&
     s_waterflow_ok &&
-    s_waterleak1_ok &&
-    s_waterleak2_ok &&
-    s_waterleak3_ok &&
+//    s_waterleak1_ok &&
+//    s_waterleak2_ok &&
+//    s_waterleak3_ok &&
     s_temp1_ok &&
     s_temp2_ok 
   )
@@ -356,9 +356,9 @@ void update_display() {
   generic_display_state(5, s_waterflow_ok);
   generic_display_state(7, s_temp1_ok);
   generic_display_state(9, s_temp2_ok);
-  generic_display_state(11, s_waterleak1_ok);
-  generic_display_state(13, s_waterleak2_ok);
-  generic_display_state(15, s_waterleak3_ok);
+//  generic_display_state(11, s_waterleak1_ok);
+//  generic_display_state(13, s_waterleak2_ok);
+//  generic_display_state(15, s_waterleak3_ok);
   DEBUG_PRINT("\nTemps:");
   DEBUG_PRINT("water inlet temperature: ");
   DEBUG_PRINT(s_temp1);
