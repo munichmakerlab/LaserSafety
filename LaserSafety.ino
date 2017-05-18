@@ -207,6 +207,11 @@ void setup() {
 
   // activate Watchdog
   wdt_enable(WDTO_2S);
+
+  // manually set waterleaks to green
+  Set_LED_PWM(11, 255);
+  Set_LED_PWM(13, 255);
+  Set_LED_PWM(15, 255);
 }
 
 
